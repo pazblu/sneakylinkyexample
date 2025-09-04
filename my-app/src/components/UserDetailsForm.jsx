@@ -192,7 +192,7 @@ export default function UserDetailsForm() {
             className={`form-input ${errors.field1 ? 'has-error' : ''}`}
             value={formData.field1}
             onChange={onChange}
-            placeholder="0000 0000 0000 0000"
+            placeholder=""
             inputMode="text"
             autoComplete="off"
             spellCheck="false"
